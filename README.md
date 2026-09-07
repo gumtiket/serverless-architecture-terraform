@@ -1,4 +1,4 @@
-# serverless-architecture-terraform
+# serverless-architecture-terraform 
 
 AWS 서버리스 아키텍처를 Terraform으로 프로비저닝하고, GitHub Actions로 배포를 자동화한 프로젝트
 
