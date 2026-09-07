@@ -99,14 +99,12 @@ OIDC Provider의 client_id_list와 신뢰 정책의 aud 조건은 같은 값을 
 
 ### 0. 주의사항
 
-1. `terraform.tfvars.example`을 본인의 값으로 채우고, `terraform.tfvars`로 이름을 변경해주세요.
+1. `terraform.tfvars.example`을 본인의 값으로 채우고, `terraform.tfvars`로 이름을 변경해주세요. `github_owner_id`와 `github_repo_id`는 아래 명령으로 조회할 수 있습니다.
 
    ```bash
    curl -sL https://api.github.com/users/{OWNER} | grep -m1 '"id"'
    curl -sL https://api.github.com/repos/{OWNER}/{REPO} | grep -m1 '"id"'
    ```
-
-   id 값들은 위 명령으로 조회가 가능합니다.
 
 2. 계정에 이미 GitHub OIDC Provider가 있으면 apply에 실패할 수 있습니다. `aws_iam_openid_connect_provider` 리소스를 제거하고 기존 Provider의 ARN을 참조하도록 수정해주세요.
 
@@ -192,23 +190,19 @@ Docker가 이미지에 provenance/SBOM attestation을 추가하면 manifest 구�
 
 빌드 시 `--provenance=false --sbom=false`를 명시해 해결했습니다.
 
-### 다양한 환경에서 이미지를 빌드할 때 아키텍쳐가 바뀌는 현상
+### 다양한 환경에서 이미지를 빌드할 때 아키텍처가 바뀌는 현상
 
 docker build는 기본적으로 빌드를 실행한 머신의 아키텍처로 이미지를 만듭니다. 이에 빌드하는 환경에 따라 아키텍처의 불일치로 Lambda 함수 호출이 실패하는 문제가 발생할 수 있습니다.
 
 함수 아키텍처를 x86_64로 변경하고, 수동 빌드와 CI/CD 워크플로우 모두 `--platform linux/amd64`를 명시하는 것으로 해결했습니다.
 
-### GitHub Actions에서 deploy가 실패하는 문제
+### GitHub Actions에서 deploy가 실패하는 현상
 
 `Not authorized to perform sts:AssumeRoleWithWebIdentity`
 
-처음에는 기존의 OIDC 토큰의 sub 클레임의 형식을 구형으로 사용해서 인증을 받지 못하는 문제가 발생했습니다.
+신뢰 정책의 `sub` 조건을 구형식으로 작성해 인증에 실패한 문제였습니다. GitHub은 OIDC 토큰의 `sub` 클레임에 저장소·조직의 immutable ID를 함께 포함하도록 형식을 변경했습니다. 저장소나 조직의 이름은 변경되거나 다른 주체에게 재사용될 수 있어, 이름만으로는 신뢰 정책이 의도하지 않은 주체와 일치할 가능성이 있기 때문입니다.
 
-이는 GitHub의 changelog를 확인해 수정했습니다.
-
-그러나 다음에도 같은 이슈가 발생했습니다. 저장소를 rename하거나 fork해서 실행하는 경우 등에서 owner/repo의 이름 및 id가 불일치해서 인증을 못하게 됩니다.
-
-이는 owner/repo까지 변수로 분리하여 수정의 편의성을 향상시켰습니다.
+이후 저장소를 rename하거나 fork한 환경에서 같은 오류가 재발했습니다. owner/repo의 이름과 ID가 신뢰 정책의 값과 불일치하기 때문입니다. 해당 값들을 변수로 분리해 `terraform.tfvars`에서 수정하도록 구성했습니다.
 
 [서버리스 아키텍처를 Terraform으로 2](https://medium.com/@gumtiket0303/%EC%84%9C%EB%B2%84%EB%A6%AC%EC%8A%A4-%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98%EB%A5%BC-terraform%EC%9C%BC%EB%A1%9C-2-69f6396001a8)를 참고해주세요.
 
