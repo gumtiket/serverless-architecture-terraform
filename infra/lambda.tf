@@ -3,7 +3,7 @@ resource "aws_lambda_function" "todo_app" {
   role          = aws_iam_role.todo_app_lambda.arn
   package_type  = "Image"
   image_uri     = "${aws_ecr_repository.todo_lambda.repository_url}:latest"
-  architectures = ["arm64"]
+  architectures = ["x86_64"]
   timeout       = 10
 
   environment {
