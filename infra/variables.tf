@@ -7,11 +7,11 @@ variable "github_repo_id" {
 }
 
 variable "github_owner" {
-  type = string
+  type    = string
   default = "gumtiket"
 }
 
 variable "github_repo" {
-  type = string
+  type    = string
   default = "serverless-architecture-terraform"
 }

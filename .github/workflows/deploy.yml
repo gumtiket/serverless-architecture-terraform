@@ -42,7 +42,7 @@ jobs:
         id: ecr
 
       - run: |
-          docker build --provenance=false --sbom=false -t $ECR_REPOSITORY .
+          docker build --platform linux/amd64 --provenance=false --sbom=false -t $ECR_REPOSITORY .
           docker tag $ECR_REPOSITORY:latest ${{ steps.ecr.outputs.registry }}/$ECR_REPOSITORY:latest
           docker push ${{ steps.ecr.outputs.registry }}/$ECR_REPOSITORY:latest
 
