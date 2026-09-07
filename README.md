@@ -50,7 +50,7 @@ Lambda 실행 Role과 GitHub Actions 배포 Role을 분리했습니다. 전자�
 배포 Role의 권한은 액션 단위로 분리해, 푸시 권한은 ECR 레포지토리 ARN으로, 갱신 권한은 Lambda 함수 ARN으로 좁혔습니다.
 다만, `ecr:GetAuthorizationToken`은 특정 레포지토리에 접근하는 권한이 아닌 인증 토큰을 발급받는 권한이기 때문에 리소스 단위 제한이 불가능합니다. 따라서, 해당 statement는 분리해 `resources = ["*"]`를 적용했습니다.
 
-OIDC Provider의 client_id_list와 신뢰 정책의 aud 조건은 같은 값을 검사하지만 적용 계층이 다릅니다. 이를 통해 Provider 설정이 변경되도 Role의 제한을 유지할 수 있습니다. 
+OIDC Provider의 client_id_list와 신뢰 정책의 aud 조건은 같은 값을 검사하지만 적용 계층이 다릅니다. 이를 통해 Provider 설정이 변경되어도 Role의 제한을 유지할 수 있습니다. 
 
 ---
 
@@ -60,23 +60,23 @@ OIDC Provider의 client_id_list와 신뢰 정책의 aud 조건은 같은 값을 
 .
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml      # main 브랜치 push 시 이미지 빌드 → ECR 업로드 → Lambda 갱신
+│       └── deploy.yml    
 ├── images/
-│   └── architecture.png    # 아키텍처 다이어그램
-├── infra/                  # Terraform으로 정의한 인프라
-│   ├── provider.tf         # AWS provider 및 backend 설정
-│   ├── variables.tf        # 입력 변수 정의
-│   ├── api_gateway.tf      # API Gateway (HTTP API)
-│   ├── lambda.tf           # Lambda (컨테이너 이미지)
-│   ├── dynamodb.tf         # DynamoDB 테이블
-│   ├── ecr.tf              # 컨테이너 이미지 저장소
-│   ├── iam.tf              # 리소스별 IAM 역할/정책
-│   ├── github_oidc.tf      # GitHub Actions OIDC 자격증명
-│   ├── outputs.tf          # 출력 값
-│   └── graph.svg           # terraform graph 시각화
-├── src/                    # 애플리케이션 코드 (인프라 검증용 최소 CRUD API)
-│   ├── app.py               # API 진입점 (Lambda 핸들러)
-│   └── todos.py             # Todo CRUD 로직
+│   ├── architecture.png
+│   └── graph.svg 
+├── infra/                 
+│   ├── provider.tf         
+│   ├── variables.tf      
+│   ├── api_gateway.tf     
+│   ├── lambda.tf         
+│   ├── dynamodb.tf       
+│   ├── ecr.tf             
+│   ├── iam.tf           
+│   ├── github_oidc.tf    
+│   └── outputs.tf                  
+├── src/                  
+│   ├── app.py               
+│   └── todos.py            
 ├── tests/
 │   ├── test_app.py
 │   └── test_todos.py
@@ -89,6 +89,19 @@ OIDC Provider의 client_id_list와 신뢰 정책의 aud 조건은 같은 값을 
 ---
 
 ## 실행 방법
+
+### 0. 변수 설정
+
+``` bash
+curl -s https://api.github.com/users/{USER_ID} | grep -m1 '"id"'
+curl -s https://api.github.com/repos/{USER_ID}/{REPO_NAME} | grep -m1 '"id"'
+```
+
+terraform.tfvars.example을 채워주세요.
+
+`github_owner_id`와 `github_repo_id`는 GitHub 계정/저장소의 **숫자 ID**입니다.
+
+리전을 변경하려면 provider.tf를 수정해주세요. 기본은 ap-northeast-2입니다.
 
 ### 1. 인프라 프로비저닝
 
@@ -168,6 +181,13 @@ Docker가 이미지에 provenance/SBOM attestation을 추가하면 manifest 구�
 빌드 시 `--provenance=false --sbom=false`를 명시해 해결했습니다.
 
 [서버리스 아키텍처를 Terraform으로 2](https://medium.com/@gumtiket0303/%EC%84%9C%EB%B2%84%EB%A6%AC%EC%8A%A4-%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98%EB%A5%BC-terraform%EC%9C%BC%EB%A1%9C-2-69f6396001a8)를 참고해주세요.
+
+---
+
+### 추후 고려
+
++ 백엔드 관리
++ lambda 이미지
 
 
 

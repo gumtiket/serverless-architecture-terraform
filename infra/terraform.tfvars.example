@@ -1,0 +1,4 @@
+# infra/terraform.tfvars.example
+# terraform.tfvars 로 파일 이름을 변경해 주세요.
+github_owner_id = ""
+github_repo_id  = ""
