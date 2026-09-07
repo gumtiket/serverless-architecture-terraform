@@ -1,4 +1,4 @@
-# serverless-architecture-terraform 
+# serverless-architecture-terraform
 
 AWS 서버리스 아키텍처를 Terraform으로 프로비저닝하고, GitHub Actions로 배포를 자동화한 프로젝트
 
@@ -21,7 +21,7 @@ AWS 서버리스 아키텍처를 Terraform으로 프로비저닝하고, GitHub A
 
 클라이언트 요청은 API Gateway(HTTP API)를 거쳐 Lambda로 전달됩니다. Lambda는 DynamoDB에 접근해 데이터를 처리합니다.
 
-배포는 main 브랜치에 push하면 GitHub Actions가 이미지를 빌드해 ECR에 업로드하고, Lambda가 새 이미지를 사용하도록 갱신합니다.
+배포는 main 브랜치에 push하면 GitHub Actions가 테스트를 실행하고, 통과한 경우에만 이미지를 빌드해 ECR에 업로드한 뒤 Lambda가 새 이미지를 사용하도록 갱신합니다.
 
 ---
 
@@ -38,6 +38,12 @@ AWS 서버리스 아키텍처를 Terraform으로 프로비저닝하고, GitHub A
 RDBMS를 배제한 이유는 ①번 문서에 정리되어 있습니다. 요약하자면, Lambda는 요청이 몰릴 때 실행 환경을 늘려 병렬 처리하기 때문에 커넥션 풀 기반의 RDBMS와 어울리지 않습니다. RDS Proxy가 완화해 줄 수 있으나, 커넥션 관리 계층이 추가되고 데이터베이스의 커넥션 한계를 해결하지는 못합니다. DynamoDB는 커넥션을 유지하지 않고 HTTPS API 호출로 동작해 이 문제를 피할 수 있습니다.
 
 다만 현재 조회 로직인 `scan`은 데이터가 늘어나면 비효율적입니다. 이는 서비스의 규모를 고려해 감수한 선택입니다.
+
+---
+
+## 리소스 의존성 그래프
+
+![리소스 의존 관계](./images/graph.svg)
 
 ---
 
@@ -72,7 +78,8 @@ OIDC Provider의 client_id_list와 신뢰 정책의 aud 조건은 같은 값을 
 │   ├── dynamodb.tf       
 │   ├── ecr.tf             
 │   ├── iam.tf           
-│   ├── github_oidc.tf    
+│   ├── github_oidc.tf
+│   ├── terraform.tfvars.example             
 │   └── outputs.tf                  
 ├── src/                  
 │   ├── app.py               
@@ -90,18 +97,22 @@ OIDC Provider의 client_id_list와 신뢰 정책의 aud 조건은 같은 값을 
 
 ## 실행 방법
 
-### 0. 변수 설정
+### 0. 주의사항
 
-``` bash
-curl -sL https://api.github.com/users/{OWNER} | grep -m1 '"id"'
-curl -sL https://api.github.com/repos/{OWNER}/{REPO_NAME} | grep -m1 '"id"'
-```
+1. `terraform.tfvars.example`을 본인의 값으로 채우고, `terraform.tfvars`로 이름을 변경해주세요.
 
-terraform.tfvars.example을 채워주세요.
+   ```bash
+   curl -sL https://api.github.com/users/{OWNER} | grep -m1 '"id"'
+   curl -sL https://api.github.com/repos/{OWNER}/{REPO} | grep -m1 '"id"'
+   ```
 
-`github_owner_id`와 `github_repo_id`는 GitHub 계정/저장소의 immutable ID입니다.
+   id 값들은 위 명령으로 조회가 가능합니다.
 
-리전을 변경하려면 provider.tf를 수정해주세요. 기본은 ap-northeast-2입니다.
+2. 계정에 이미 GitHub OIDC Provider가 있으면 apply에 실패할 수 있습니다. `aws_iam_openid_connect_provider` 리소스를 제거하고 기존 Provider의 ARN을 참조하도록 수정해주세요.
+
+3. 기본 리전은 `ap-northeast-2`입니다. 변경이 필요할 경우 provider.tf와 2단계의 로그인 명령을 수정해주세요.
+
+4.  ecr에 이미지가 있으면 `terraform destroy` 가 실패합니다.
 
 ### 1. 인프라 프로비저닝
 
@@ -147,6 +158,8 @@ terraform apply
 
 ```
 AWS_DEPLOY_ROLE_ARN = arn:aws:iam::<ACCOUNT_ID>:role/github-actions-deploy
+# 또는
+terraform output github_actions_deploy_role_arn
 ```
 
 이후 `main` 브랜치에 push하면 자동으로 배포됩니다.
@@ -183,7 +196,7 @@ Docker가 이미지에 provenance/SBOM attestation을 추가하면 manifest 구�
 
 docker build는 기본적으로 빌드를 실행한 머신의 아키텍처로 이미지를 만듭니다. 이에 빌드하는 환경에 따라 아키텍처의 불일치로 Lambda 함수 호출이 실패하는 문제가 발생할 수 있습니다.
 
-함수 아키텍처를 x86_64로 변경하고, 수동 빌드와 CI/CD 워크플로우 모두 --platform linux/amd64를 명시하는 것으로 해결했습니다.
+함수 아키텍처를 x86_64로 변경하고, 수동 빌드와 CI/CD 워크플로우 모두 `--platform linux/amd64`를 명시하는 것으로 해결했습니다.
 
 ### GitHub Actions에서 deploy가 실패하는 문제
 
@@ -193,15 +206,15 @@ docker build는 기본적으로 빌드를 실행한 머신의 아키텍처로 �
 
 이는 GitHub의 changelog를 확인해 수정했습니다.
 
-그러나 다음에도 같은 이슈가 발생했습니다. 저장소를 rename하거나 fork해서 실행하는 경우 등에서 owner/repo의 이름이 불일치해서 인증을 못하게 됩니다.
+그러나 다음에도 같은 이슈가 발생했습니다. 저장소를 rename하거나 fork해서 실행하는 경우 등에서 owner/repo의 이름 및 id가 불일치해서 인증을 못하게 됩니다.
 
-이는 owner/repo까지 변수로 분리하여 해결했습니다.
+이는 owner/repo까지 변수로 분리하여 수정의 편의성을 향상시켰습니다.
 
 [서버리스 아키텍처를 Terraform으로 2](https://medium.com/@gumtiket0303/%EC%84%9C%EB%B2%84%EB%A6%AC%EC%8A%A4-%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98%EB%A5%BC-terraform%EC%9C%BC%EB%A1%9C-2-69f6396001a8)를 참고해주세요.
 
 ---
 
-### 추후 고려
+## 추후 고려
 
 + 백엔드 관리
 + lambda 이미지
