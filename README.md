@@ -93,13 +93,13 @@ OIDC Provider의 client_id_list와 신뢰 정책의 aud 조건은 같은 값을 
 ### 0. 변수 설정
 
 ``` bash
-curl -s https://api.github.com/users/{USER_ID} | grep -m1 '"id"'
-curl -s https://api.github.com/repos/{USER_ID}/{REPO_NAME} | grep -m1 '"id"'
+curl -sL https://api.github.com/users/{OWNER} | grep -m1 '"id"'
+curl -sL https://api.github.com/repos/{OWNER}/{REPO_NAME} | grep -m1 '"id"'
 ```
 
 terraform.tfvars.example을 채워주세요.
 
-`github_owner_id`와 `github_repo_id`는 GitHub 계정/저장소의 **숫자 ID**입니다.
+`github_owner_id`와 `github_repo_id`는 GitHub 계정/저장소의 immutable ID입니다.
 
 리전을 변경하려면 provider.tf를 수정해주세요. 기본은 ap-northeast-2입니다.
 
@@ -127,14 +127,13 @@ aws ecr get-login-password --region ap-northeast-2 \
   | docker login --username AWS --password-stdin <ECR_REGISTRY>
   
 # 빌드 및 푸시
-docker build --provenance=false --sbom=false -t todo-lambda .
+docker build --platform linux/amd64 --provenance=false --sbom=false -t todo-lambda .
 docker tag todo-lambda:latest <ECR_REGISTRY>/todo-lambda:latest
 docker push <ECR_REGISTRY>/todo-lambda:latest
 ```
 
 > 만약 위의 방법으로 해결이 안될 경우 
 > ① Docker Desktop 앱 → Settings → General → "Use containerd for pulling and storing images" 체크 해제 → Apply & restart
-> ② Lambda 함수와 이미지의 아키텍처가 불일치하지 않는지 확인해 주세요.
 
 ### 3. 적용
 
@@ -179,6 +178,24 @@ Lambda는 함수를 생성하거나 갱신하는 시점에 `image_uri`의 태그
 Docker가 이미지에 provenance/SBOM attestation을 추가하면 manifest 구조가 달라져, Lambda가 이미지를 정상적으로 인식하지 못하는 경우가 있습니다.
 
 빌드 시 `--provenance=false --sbom=false`를 명시해 해결했습니다.
+
+### 다양한 환경에서 이미지를 빌드할 때 아키텍쳐가 바뀌는 현상
+
+docker build는 기본적으로 빌드를 실행한 머신의 아키텍처로 이미지를 만듭니다. 이에 빌드하는 환경에 따라 아키텍처의 불일치로 Lambda 함수 호출이 실패하는 문제가 발생할 수 있습니다.
+
+함수 아키텍처를 x86_64로 변경하고, 수동 빌드와 CI/CD 워크플로우 모두 --platform linux/amd64를 명시하는 것으로 해결했습니다.
+
+### GitHub Actions에서 deploy가 실패하는 문제
+
+`Not authorized to perform sts:AssumeRoleWithWebIdentity`
+
+처음에는 기존의 OIDC 토큰의 sub 클레임의 형식을 구형으로 사용해서 인증을 받지 못하는 문제가 발생했습니다.
+
+이는 GitHub의 changelog를 확인해 수정했습니다.
+
+그러나 다음에도 같은 이슈가 발생했습니다. 저장소를 rename하거나 fork해서 실행하는 경우 등에서 owner/repo의 이름이 불일치해서 인증을 못하게 됩니다.
+
+이는 owner/repo까지 변수로 분리하여 해결했습니다.
 
 [서버리스 아키텍처를 Terraform으로 2](https://medium.com/@gumtiket0303/%EC%84%9C%EB%B2%84%EB%A6%AC%EC%8A%A4-%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98%EB%A5%BC-terraform%EC%9C%BC%EB%A1%9C-2-69f6396001a8)를 참고해주세요.
 
