@@ -1,5 +1,7 @@
 # serverless-architecture-terraform
 
+**한국어** | [日本語](./README.ja.md)
+
 AWS 서버리스 아키텍처를 Terraform으로 프로비저닝하고, GitHub Actions로 배포를 자동화한 프로젝트
 
 **이 저장소의 주제는 인프라 구성 및 배포 파이프라인입니다.** 애플리케이션은 인프라의 검증을 위한 최소 CRUD API로 구성하여, Terraform 코드와 배포 구조에 집중했습니다.
