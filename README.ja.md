@@ -6,11 +6,11 @@ AWS サーバーレスアーキテクチャを Terraform でプロビジョニ�
 
 **このリポジトリのテーマは、インフラ構成とデプロイパイプラインです。** アプリケーションはインフラを検証するための最小限の CRUD API とし、Terraform コードとデプロイ構造に焦点を当てました。
 
-構築過程と技術選定の根拠は、以下のドキュメントにまとめています。(いずれも韓国語で執筆)
+構築過程と技術選定の根拠は、以下のドキュメントにまとめています。(①は日本語、②〜④は韓国語で執筆)
 
 |      | ドキュメント                                                 | 内容                                     |
 | ---- | ------------------------------------------------------------ | ---------------------------------------- |
-| ①    | [Lambda と DynamoDB を選んだ理由](https://medium.com/@gumtiket0303/lambda%EC%99%80-dynamodb%EB%A5%BC-%EC%84%A0%ED%83%9D%ED%95%9C-%EC%9D%B4%EC%9C%A0-15993a76aa98) | 技術選定の根拠とトレードオフ             |
+| ①    | [Lambda と DynamoDB を選んだ理由](https://zenn.dev/gumtiket/articles/ac7a449d229e91) | 技術選定の根拠とトレードオフ             |
 | ②    | [Terraform、これだけ知って始めよう](https://medium.com/@gumtiket0303/terraform-%EC%9D%B4%EA%B2%83%EB%A7%8C-%EC%95%8C%EA%B3%A0-%EC%8B%9C%EC%9E%91%ED%95%98%EC%9E%90-d5293100442d) | provider、state、init/plan/apply/destroy |
 | ③    | [サーバーレスアーキテクチャを Terraform で](https://medium.com/@gumtiket0303/%EC%84%9C%EB%B2%84%EB%A6%AC%EC%8A%A4-%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98%EB%A5%BC-terraform%EC%9C%BC%EB%A1%9C-3b23aac39e0c) | リソースごとの構成と依存関係             |
 | ④    | [サーバーレスアーキテクチャを Terraform で 2](https://medium.com/@gumtiket0303/%EC%84%9C%EB%B2%84%EB%A6%AC%EC%8A%A4-%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98%EB%A5%BC-terraform%EC%9C%BC%EB%A1%9C-2-69f6396001a8) | GitHub Actions OIDC によるデプロイ       |
